@@ -242,7 +242,26 @@ def adjust_lr(optimizer, epoch, config):
     for param_group in optimizer.param_groups:
         param_group['lr'] = new_lr
 
+def adjust_lr_add(optimizer, epoch, config):
+    """
+    动态调整学习率，支持多步衰减策略。
+    config 中需包含如下字段：
+        - lr: 初始学习率
+        - min_lr: 最小学习率
+        - lr_decay_epochs: [epoch1, epoch2, ...]
+        - lr_decay_rate: 衰减系数（如 0.1）
+    """
+    lr = config.incre_lr
+    decay_rate = config.incre_lr_decay_rate
+    decay_epochs = config.incre_lr_decay_epochs
+    min_lr = config.min_lr
 
+    decay_steps = sum(epoch >= e for e in decay_epochs)
+    new_lr = lr * (decay_rate ** decay_steps)
+    new_lr = max(new_lr, min_lr)
+
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = new_lr
 
 import numpy as np
 from sklearn.metrics import roc_curve

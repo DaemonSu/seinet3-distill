@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from dataset import KnownDataset, UnknownDataset
-from model_open import FeatureExtractor, ClassifierHead
+from model_mix import FeatureExtractor, ClassifierHead
 from util.utils import set_seed
 from sklearn.metrics import confusion_matrix, f1_score
 import numpy as np
@@ -21,7 +21,7 @@ def evaluate_open_contrastive(config):
 
     # ============ 加载模型 ============
     encoder = FeatureExtractor(1024).to(config.device)
-    classifier = ClassifierHead(1024, 10).to(config.device)
+    classifier = ClassifierHead(1024, 22).to(config.device)
 
     ckpt = torch.load(os.path.join(config.save_dir, 'model_opencon2.pth'), map_location=config.device)
     encoder.load_state_dict(ckpt['encoder'])

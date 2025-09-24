@@ -1,26 +1,3 @@
-from torch.utils.data import Dataset
-import numpy as np
-import torch
-from torch.utils.data import Dataset
-import os
-
-class SEIDataset(Dataset):
-    def __init__(self, data_path):
-        self.files = [os.path.join(data_path, f) for f in os.listdir(data_path) if f.endswith('.npy')]
-        self.labels = [int(f.split('_')[1]) for f in self.files]  # 获取 device_xx_xxxx.npy 的 xx 作为label
-
-    def __len__(self):
-        return len(self.files)
-
-    def __getitem__(self, idx):
-        data = np.load(self.files[idx])
-        label = self.labels[idx]
-        # print(data.shape)
-        # print(label)  # 打印每个批次的标签
-        return torch.tensor(data, dtype=torch.float), label
-
-
-
 # 文件：dataset.py
 
 import torch
@@ -105,7 +82,7 @@ class MixedDataset(Dataset):
         path, label = self.samples[index]
         data = np.load(path)  # shape = [2, L]
         data = torch.tensor(data, dtype=torch.float32)
-        if  label > 7:
+        if  label > 20:
            label= -1
         return data, label # unknown 类标记为 -1
 

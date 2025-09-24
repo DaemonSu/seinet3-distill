@@ -31,6 +31,6 @@ def move_random_files(source_folder, destination_folder, num_files_to_move):
 #     num_files_to_move = 8000  # 需要移动的文件数量
 
     # move_random_files(source_folder, destination_folder, num_files_to_move)
-source_folder = f"G:/seidata/32ft-exp2/openset"  # 源文件夹路径
-destination_folder = f"G:/seidata/32ft-exp2/test2-mixed"  # 目标文件夹路径
-move_random_files(source_folder, destination_folder, 4000)
+source_folder = f"G:/seidataforCIL/train"  # 源文件夹路径
+destination_folder = f"G:/seidataforCIL/train-closed"  # 目标文件夹路径
+move_random_files(source_folder, destination_folder, 5500)

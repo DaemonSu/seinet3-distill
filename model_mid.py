@@ -7,7 +7,7 @@ class ContrastiveLayer(nn.Module):
     插入在特征提取器和分类器之间的对比学习层
     输出特征用于对比损失或继续分类
     """
-    def __init__(self, in_dim=1024, hidden_dim=512, out_dim=1024, use_norm=True):
+    def __init__(self, in_dim=1024, hidden_dim=1024, out_dim=1024, use_norm=True):
         """
         in_dim : encoder输出特征维度
         hidden_dim : 对比层内部隐藏维度

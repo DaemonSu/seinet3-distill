@@ -111,14 +111,6 @@ class FeatureExtractor(nn.Module):
         return feat
 
 
-#
-# class ClassifierHead(nn.Module):
-#     def __init__(self, in_dim=128, num_classes=10):
-#         super().__init__()
-#         self.classifier = nn.Linear(in_dim, num_classes)
-#
-#     def forward(self, x):
-#         return self.classifier(x)
 
 class ClassifierHead(nn.Module):
     def __init__(self, in_dim=128, num_classes=10):
@@ -134,7 +126,6 @@ class ClassifierHead(nn.Module):
         return self.classifier(x)
 
     # open_detector.py
-
 
 
 

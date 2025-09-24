@@ -66,7 +66,7 @@ def test_mixed(encoder, classifier, test_loader, config):
             unknown_max_probs.append(prob_val.item())
 
 
-    visualize_features(np.array(all_feats),np.array(all_labels), known_class_count=8, method='t-SNE')
+    visualize_features(np.array(all_feats),np.array(all_labels), known_class_count=20, method='t-SNE')
     all_logits = np.concatenate(all_logits)
 
     # Convert to numpy arrays
@@ -113,9 +113,13 @@ def test_mixed(encoder, classifier, test_loader, config):
     print(f"Open-set F1 Score       : {f1_open:.4f}")
 
     # 混淆矩阵
+    np.set_printoptions(
+        linewidth=2000,  # 每行最大字符数（设置足够大的值避免换行）
+        threshold=np.inf  # 强制打印所有元素（不省略）
+    )
     try:
         print("\nConfusion Matrix:")
-        print(confusion_matrix(all_labels, all_preds, labels=list(range(8)) + [-1]))
+        print(confusion_matrix(all_labels, all_preds, labels=list(range(20)) + [-1]))
     except:
         print("Warning: Unable to compute confusion matrix for open-set labels.")
 

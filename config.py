@@ -7,20 +7,20 @@ def parse_args():
     parser.add_argument('--new_num_classes', default=20, type=int)
     parser.add_argument('--seq_len', default=3000, type=int)
     parser.add_argument('--device', default='cuda:0', type=str)
-    parser.add_argument('--epochs', default=260, type=int)
+    parser.add_argument('--epochs', default=42, type=int)
 
-    parser.add_argument('--batch_size', default=320, type=int)
+    parser.add_argument('--batch_size', default=180, type=int)
     # 初始训练过程中，每轮训练开集数据的数量
-    parser.add_argument('--open_batch_size', default=80, type=int)
+    parser.add_argument('--open_batch_size', default=180, type=int)
 
     # 增量学习过程中的每轮数量
     parser.add_argument('--incr_batch_size', default=100, type=int)
     parser.add_argument('--seed', default=42, type=int)
-    parser.add_argument('--lr', default=0.1, type=float)
+    parser.add_argument('--lr', default=0.001, type=float)
 
     parser.add_argument('--min_lr', default=1e-5, type=float)
     parser.add_argument('--lr_decay_rate', default=0.1, type=float)
-    parser.add_argument('--lr_decay_epochs', default=[120, 180, 210], type=float)
+    parser.add_argument('--lr_decay_epochs', default=[35, 120, 210], type=float)
     parser.add_argument('--embedding_dim', default=1024, type=int)
 
     # 增量训练过程中的学习率参数设置
@@ -35,8 +35,8 @@ def parse_args():
 
 
     parser.add_argument('--threshold', default=10000, type=int)
-    parser.add_argument('--open_threshold', type=float, default=0.50, help='Threshold for open-set test decision')
-    parser.add_argument('--open_threshold_train', type=float, default=0.30, help='Threshold for open-set train decision')
+    parser.add_argument('--open_threshold', type=float, default=0.90, help='Threshold for open-set test decision')
+    parser.add_argument('--open_threshold_train', type=float, default=0.1, help='Threshold for open-set train decision')
     parser.add_argument('--proto_threshold', type=float, default=0.50, help='Threshold for proto open-set decision')
 
     # 损失中的原型距离损失
@@ -57,13 +57,16 @@ def parse_args():
 
 
     # openset 训练集合定义
-    parser.add_argument('--train_data_close', default='G:/seidataforCIL2/train-closed', type=str)
-    parser.add_argument('--train_data_open', default='G:/seidataforCIL2/train-openset', type=str)
+    parser.add_argument('--train_data_close', default='G:/seidataforCIL/train-closed', type=str)
+    parser.add_argument('--train_data_open', default='G:/seidataforCIL/train-openset', type=str)
+
+    # 训练过程中的验证集
+    parser.add_argument('--val_closed', default='G:/seidataforCIL/val-closed', type=str)
 
     # 初始训练后的闭集测试集
-    parser.add_argument('--test_closed', default='G:/seidataforCIL2/test-closed', type=str)
+    parser.add_argument('--test_closed', default='G:/seidataforCIL/test-closed', type=str)
     # 初始训练后的开集测试
-    parser.add_argument('--test_mixed', default='G:/seidataforCIL2/test-mixed', type=str)
+    parser.add_argument('--test_mixed', default='G:/seidataforCIL/test-mixed', type=str)
 
     #第一次增量学习数据与测试
     parser.add_argument('--train_data_add1', default='G:/seidataforCIL/train-add1', type=str)

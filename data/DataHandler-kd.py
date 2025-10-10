@@ -2,16 +2,18 @@ import os
 import numpy as np
 import shutil
 
+from scipy.signal import stft
+
 # ---------------------------
 # 配置参数
 # ---------------------------
-INPUT_DIR = "G:/seidataforCIL/IQArray"  # 存放device_XX_iq.npy的文件夹
+INPUT_DIR = "G:/seidataforCIL/IQArray3_without_noise"  # 存放device_XX_iq.npy的文件夹
 OUTPUT_DIR = "G:/seidataforCIL"  # 处理后数据保存根目录
 TRAIN_DEVICES = 20  # 训练设备数量
 OPENSET_DEVICES = 10  # 开集设备数量
 ADD_GROUP_SIZE = 20  # 每个add组的设备数量
-SAMPLE_SIZE = 3000  # 每个样本的采样点数
-STRIDE = 3000  # 样本分割步长（无重叠）
+SAMPLE_SIZE = 7000  # 每个样本的采样点数
+STRIDE = 7000  # 样本分割步长（无重叠）
 
 
 # ---------------------------
@@ -23,7 +25,7 @@ def get_sorted_device_files(input_dir):
 
     # 遍历目录下所有device_XX_iq.npy文件
     for filename in os.listdir(input_dir):
-        if filename.startswith("device_") and filename.endswith("_iq.npy"):
+        if filename.startswith("device_") and filename.endswith("_iq_denoised.npy"):
             file_path = os.path.join(input_dir, filename)
             # 获取文件大小（字节）
             file_size = os.path.getsize(file_path)
@@ -39,11 +41,12 @@ def get_sorted_device_files(input_dir):
 def extract_features(iq_file_path):
     """只提取Q域和绝对值（不做FFT），FFT在分段后再做"""
     try:
-        iq_data = np.load(iq_file_path)
+        iq_data = np.load(iq_file_path,allow_pickle=True)
+        i_part = iq_data[0, :]  # Q信号
         q_part = iq_data[1, :]  # Q信号
-        q_abs = np.abs(q_part)
+        # q_abs = np.abs(q_part)
         # 先返回 (N,2)，第三列FFT留空
-        features = np.column_stack((q_part, q_abs))
+        features = np.column_stack((i_part,q_part))
         return features
     except Exception as e:
         print(f"处理文件 {iq_file_path} 出错: {str(e)}")
@@ -51,13 +54,22 @@ def extract_features(iq_file_path):
 # ---------------------------
 # 样本生成函数（支持数据对齐）
 # ---------------------------
-def generate_samples(features, max_samples=None):
-    """从特征矩阵生成样本，并在每段内计算FFT"""
+import numpy as np
+import pywt
+
+def generate_samples(features, max_samples=None, cwt_wavelet='cmor1.5-1.0', cwt_scales=None):
+    """
+    从特征矩阵生成样本，并在每段内计算FFT + CWT（时频图）
+    输出特征长度和Q一致
+    """
     total_points = features.shape[0]
     if total_points < SAMPLE_SIZE:
         return []
 
-    max_possible = (total_points - SAMPLE_SIZE) // STRIDE + 1
+    if cwt_scales is None:
+        cwt_scales = np.arange(1, 64)  # 默认尺度
+
+    max_possible = total_points // SAMPLE_SIZE  # 不重叠
     if max_samples is not None:
         num_samples = min(max_possible, max_samples)
     else:
@@ -65,24 +77,31 @@ def generate_samples(features, max_samples=None):
 
     samples = []
     for i in range(num_samples):
-        start = i * STRIDE
+        start = i * SAMPLE_SIZE
         end = start + SAMPLE_SIZE
 
-        # 取出这一段Q和absQ
         segment = features[start:end, :]
-        q_segment = segment[:, 0]
+        i_segment = segment[:, 0]
+        q_segment = segment[:, 1]
 
-        # 对这一段做FFT
-        q_fft = np.fft.fft(q_segment)
-        fft_abs = np.abs(q_fft)
+        # 复包络 FFT
+        # iq_segment = i_segment + 1j * q_segment
+        iq_fft = np.fft.fft(q_segment)
+        fft_abs = np.abs(iq_fft)
 
-        # 拼回成 (SAMPLE_SIZE, 3)
-        segment_features = np.column_stack((q_segment,
-                                            np.abs(q_segment),
-                                            fft_abs))
+        # 构造样本特征 (SAMPLE_SIZE, 6)
+        segment_features = np.column_stack((
+            q_segment,
+            np.abs(q_segment),
+            fft_abs
+        ))
+        segment_features = (segment_features - np.min(segment_features, axis=0)) / (
+                    np.max(segment_features, axis=0) - np.min(segment_features, axis=0) + 1e-8)
+
         samples.append(segment_features)
 
     return samples
+
 
 
 # ---------------------------

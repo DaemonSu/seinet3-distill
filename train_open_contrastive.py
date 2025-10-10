@@ -18,14 +18,14 @@ def train_open_contrastive(config):
     unknown_trainset = UnknownDataset(config.train_data_open)
     unknown_loader = DataLoader(unknown_trainset, batch_size=config.open_batch_size, shuffle=True)
 
-    encoder = FeatureExtractor(in_channels=3, feature_dim=1024).to(config.device)
-    classifier = ClassifierHead(1024, config.num_classes).to(config.device)
+    encoder = FeatureExtractor(in_channels=3, feature_dim=config.embedding_dim).to(config.device)
+    classifier = ClassifierHead(config.embedding_dim, config.num_classes).to(config.device)
 
     ce_loss_fn = nn.CrossEntropyLoss()
     # supcon_loss_fn = SupConLoss_OpenSet()
-    # supcon_loss_fn =SupConLoss_DynamicMargin()
-    supcon_loss_fn =SupCon_OpenSet_Mixed()
-    optimizer = torch.optim.Adam(list(encoder.parameters()) + list(classifier.parameters()), lr=config.lr)
+    supcon_loss_fn =SupConLoss_DynamicMargin()
+    # supcon_loss_fn =SupCon_OpenSet_Mixed()
+    optimizer = torch.optim.Adam(list(encoder.parameters()) + list(classifier.parameters()), lr=config.lr, weight_decay=1e-4)
 
     feature_cache = {cls: [] for cls in range(config.old_num_classes)}
 
@@ -76,14 +76,16 @@ def train_open_contrastive(config):
             # 对比损失：已知类之间 + 已知类 vs 未知类
             feat_all = torch.cat([feat_known, feat_unknown], dim=0)
             labels_all = torch.cat([y_known, torch.full((x_unknown.size(0),), -1, device=config.device)], dim=0)
-            con_loss,_ = supcon_loss_fn(feat_all, labels_all)
+            con_loss = supcon_loss_fn(feat_all, labels_all)
 
 
-            if epoch <=150:
-                loss =  con_loss + ce_loss
-
-            elif epoch > 150:
-                loss = 2*con_loss + ce_loss + 0.5 *penalty_loss + 0.2 * kl_loss
+            # if epoch <=150:
+            #     loss =  con_loss + ce_loss
+            #
+            # elif epoch > 150:
+            #     loss = 2*con_loss + ce_loss + 0.5 *penalty_loss + 0.2 * kl_loss
+            # loss =  2.4*con_loss + 2.6*ce_loss + 0.7* penalty_loss + 0.5* kl_loss
+            loss = 2.0 * con_loss + 2.1 * ce_loss + 1.0 * penalty_loss+0.05* kl_loss
 
             if epoch%10 == 0:
                 print(f"[Epoch {epoch + 1}] ce: {ce_loss:.4f} | con: {con_loss:.4f} | kl: {kl_loss:.4f} | penalty: {penalty_loss:.4f}")
@@ -115,6 +117,25 @@ def train_open_contrastive(config):
 
         print(f"[Epoch {epoch+1}] Loss: {total_loss/len(known_loader):.4f} | Acc: {total_acc/len(known_loader):.4f}")
         adjust_lr(optimizer, epoch, config)
+
+        if epoch % 10 == 0:
+            valset = KnownDataset(config.val_closed)
+            val_loader = DataLoader(valset, batch_size=config.batch_size, shuffle=False)
+            encoder.eval()
+            classifier.eval()
+
+            correct, total = 0, 0
+            with torch.no_grad():
+                for x, y in val_loader:
+                    x, y = x.to(config.device), y.to(config.device)
+                    logits = classifier(encoder(x))
+                    preds = logits.argmax(dim=1)
+                    correct += (preds == y).sum().item()
+                    total += y.size(0)
+            acc = correct / total
+            print(f"[Epoch {epoch + 1}] Val Acc: {acc:.4f}")
+
+
 
     # ============ 模型保存 ============
     os.makedirs(config.save_dir, exist_ok=True)

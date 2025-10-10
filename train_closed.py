@@ -23,11 +23,9 @@ def train_open_contrastive(config):
     # supcon_loss_fn = SupConLoss_OpenSet()
     # supcon_loss_fn =SupConLoss_DynamicMargin()
     supcon_loss_fn =SupCon_OpenSet_Mixed()
-    optimizer = torch.optim.Adam(list(encoder.parameters()) + list(classifier.parameters()), lr=config.lr)
+    optimizer = torch.optim.Adam(list(encoder.parameters()) + list(classifier.parameters()), lr=config.lr, weight_decay=1e-4)
 
     feature_cache = {cls: [] for cls in range(config.old_num_classes)}
-
-
 
     for epoch in range(config.epochs):
         encoder.train()
@@ -53,8 +51,12 @@ def train_open_contrastive(config):
 
             # 对比损失：已知类之间 + 已知类 vs 未知类
             con_loss,_ = supcon_loss_fn(feat_known, y_known)
+            if epoch <= 150:
+                loss = 0.01 * con_loss + ce_loss
+            else:
+                loss = 0.5*con_loss + ce_loss
 
-            loss = con_loss+ce_loss
+
 
             optimizer.zero_grad()
             loss.backward()

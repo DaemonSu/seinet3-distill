@@ -1,15 +1,9 @@
 import os
 
-import torch
-import torch.nn.functional as F
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-import numpy as np
 
 from config import parse_args
-from dataset import MixedDataset, KnownDataset
-from model_mix import FeatureExtractor, ClassifierHead
+from dataset import  KnownDataset
 from util.utils import expected_calibration_error, fpr_at_95_tpr
 from util.visualize import visualize_features
 
@@ -27,8 +21,6 @@ def test_mixed(encoder, classifier, test_loader, config):
     all_preds = []
     all_labels = []
     all_probs = []     # list of batch tensors (cpu)
-    known_scores = []
-    unknown_scores = []
     all_feats = []
 
     with torch.no_grad():
@@ -46,8 +38,7 @@ def test_mixed(encoder, classifier, test_loader, config):
             all_feats.append(feat.cpu().numpy())   # for t-SNE
 
             # known/unknown scores (if unknown labeled as -1)
-            known_scores.extend(max_probs.cpu().numpy()[y_torch.cpu().numpy() != -1])
-            unknown_scores.extend(max_probs.cpu().numpy()[y_torch.cpu().numpy() == -1])
+            # known_scores.extend(max_probs.cpu().numpy()[y_torch.cpu().numpy() != -1])
 
             all_preds.extend(preds.cpu().numpy().tolist())
             all_labels.extend(y_torch.cpu().numpy().tolist())
@@ -95,19 +86,11 @@ def test_mixed(encoder, classifier, test_loader, config):
         print("[Warn] ECE computation failed:", e)
         ece = float('nan')
 
-    # optional: fpr95
-    try:
-        fpr95 = fpr_at_95_tpr(np.array(known_scores), np.array(unknown_scores))
-    except Exception as e:
-        print("[Warn] fpr95 computation failed:", e)
-        fpr95 = float('nan')
-
     print("\n===== Mixed Test Results =====")
     print(f"Closed-set Accuracy      : {closed_acc * 100:.2f}%")
     print(f"Open-set Recognition Rate: {open_recognition_rate * 100 if not np.isnan(open_recognition_rate) else np.nan:.2f}%")
     print(f"Overall Accuracy         : {overall_acc * 100:.2f}%")
     print(f"Open-set F1 Score        : {f1_open:.4f}")
-    print(f"ECE = {ece:.4f}, FPR@95TPR = {fpr95:.4f}")
 
     # confusion matrix
     try:
@@ -139,7 +122,7 @@ if __name__ == "__main__":
     # ============ 数据加载 ============
 
     mixed_testset = KnownDataset(config.test_closed)
-    mixed_loader = DataLoader(mixed_testset, batch_size=config.batch_size, shuffle=True)
+    mixed_loader = DataLoader(mixed_testset, batch_size=config.batch_size, shuffle=False)
 
     encoder = torch.load(os.path.join(config.save_dir, 'encoder.pth')).to(config.device)
     classifier = torch.load(os.path.join(config.save_dir,'classifier.pth')).to(config.device)

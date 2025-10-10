@@ -42,6 +42,7 @@ def test_mixed(encoder, classifier, test_loader, config):
             all_labelsdd.append(y.cpu())
             max_probs, preds = prob.max(dim=1)
 
+
             # Threshold-based prediction
             pred_labels = []
             for p, pred in zip(max_probs, preds):

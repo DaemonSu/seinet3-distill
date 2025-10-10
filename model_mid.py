@@ -38,7 +38,7 @@ class IncrementalContrastiveModel(nn.Module):
     增量训练用的网络结构：
     encoder -> contrastive layer -> classifier
     """
-    def __init__(self, encoder, classifier, in_dim=1024, hidden_dim=512, feat_dim=1024, use_norm=True):
+    def __init__(self, encoder, classifier, in_dim=256, hidden_dim=512, feat_dim=256, use_norm=True):
         super(IncrementalContrastiveModel, self).__init__()
         self.encoder = encoder
         self.contrastive_layer = ContrastiveLayer(in_dim, hidden_dim, feat_dim, use_norm)

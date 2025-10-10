@@ -61,9 +61,9 @@ def move_random_files(source_dir, target_dir, num):
 # 这个文件夹有多个设备，每个设备有多个文件 。现在使用python帮我写一个程序，将这个文件夹下的所有设备随机取出num参数个文件移动到特定的目录。
 if __name__ == "__main__":
     # 示例配置
-    SOURCE_DIRECTORY = "G:/seidataforCIL2/openset"  # 源文件夹路径
-    TARGET_DIRECTORY = "G:/seidataforCIL2/train-openset"  # 目标文件夹路径
-    NUM_TO_SELECT = 200  # 每个设备要选择的文件数量
+    SOURCE_DIRECTORY = "G:/seidataforCIL/train"  # 源文件夹路径
+    TARGET_DIRECTORY = "G:/seidataforCIL/test-closed"  # 目标文件夹路径
+    NUM_TO_SELECT = 100  # 每个设备要选择的文件数量
 
     # 执行移动操作
     move_random_files(SOURCE_DIRECTORY, TARGET_DIRECTORY, NUM_TO_SELECT)

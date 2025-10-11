@@ -7,7 +7,7 @@ def parse_args():
     parser.add_argument('--new_num_classes', default=20, type=int)
     parser.add_argument('--seq_len', default=3000, type=int)
     parser.add_argument('--device', default='cuda:0', type=str)
-    parser.add_argument('--epochs', default=42, type=int)
+    parser.add_argument('--epochs', default=50, type=int)
 
     parser.add_argument('--batch_size', default=180, type=int)
     # 初始训练过程中，每轮训练开集数据的数量
@@ -35,8 +35,8 @@ def parse_args():
 
 
     parser.add_argument('--threshold', default=10000, type=int)
-    parser.add_argument('--open_threshold', type=float, default=0.90, help='Threshold for open-set test decision')
-    parser.add_argument('--open_threshold_train', type=float, default=0.1, help='Threshold for open-set train decision')
+    parser.add_argument('--open_threshold', type=float, default=0.95, help='Threshold for open-set test decision')
+    parser.add_argument('--open_threshold_train', type=float, default=0.2, help='Threshold for open-set train decision')
     parser.add_argument('--proto_threshold', type=float, default=0.50, help='Threshold for proto open-set decision')
 
     # 损失中的原型距离损失

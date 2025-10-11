@@ -132,10 +132,10 @@ class ClassifierHead(nn.Module):
         super().__init__()
         # 分类头无需修改（输入为1D特征向量，与原逻辑一致）
         self.classifier = nn.Sequential(
-            nn.Linear(in_dim, 128),
+            nn.Linear(in_dim, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(128, num_classes)
+            nn.Linear(256, num_classes)
         )
 
     def forward(self, x):

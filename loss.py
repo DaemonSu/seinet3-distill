@@ -94,7 +94,7 @@ class SupConLoss(nn.Module):
 # 动态maring 对比学习
 class SupConLoss_DynamicMargin(nn.Module):
     # def __init__(self, temperature=0.07, base_margin=0.3, beta=0.4):
-    def __init__(self, temperature=0.1, base_margin=0.7, beta=0.5):
+    def __init__(self, temperature=0.06, base_margin=0.6, beta=0.5):
         super(SupConLoss_DynamicMargin, self).__init__()
         self.temperature = temperature
         self.base_margin = base_margin

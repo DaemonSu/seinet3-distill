@@ -85,7 +85,7 @@ def train_open_contrastive(config):
             # elif epoch > 150:
             #     loss = 2*con_loss + ce_loss + 0.5 *penalty_loss + 0.2 * kl_loss
             # loss =  2.4*con_loss + 2.6*ce_loss + 0.7* penalty_loss + 0.5* kl_loss
-            loss = 2.0 * con_loss + 2.1 * ce_loss + 1.0 * penalty_loss+0.05* kl_loss
+            loss = 2.4 * con_loss + 2.0* ce_loss + 1.0 * penalty_loss
 
             if epoch%10 == 0:
                 print(f"[Epoch {epoch + 1}] ce: {ce_loss:.4f} | con: {con_loss:.4f} | kl: {kl_loss:.4f} | penalty: {penalty_loss:.4f}")

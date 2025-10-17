@@ -75,40 +75,42 @@ class FFTBlock(nn.Module):
         return self.relu(self.bn(out))
 
 class FeatureExtractor(nn.Module):
-    def __init__(self, in_channels=3, feature_dim=128):
+    def __init__(self, in_channels=3, feature_dim=1024):
         super().__init__()
         # Stem层：1D→2D卷积，参数适配
         self.stem = nn.Sequential(
-            nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=2, padding=(3, 3)),  # [B, 64, H//2, W//2]
-            nn.BatchNorm2d(64),
+            nn.Conv2d(in_channels, 128, kernel_size=5, stride=2, padding=2),  # [B, 64, H//2, W//2]
+            nn.BatchNorm2d(128),
             nn.ReLU()
         )
 
-        self.layer1 = ResidualBlock(64, 128, stride=2)             # [B, 128, H//4, W//4]
+        self.layer1 = ResidualBlock(128, 256, stride=2)             # [B, 128, H//4, W//4]
         self.layer2 = nn.Sequential(                               # 深度残差块（2D版本）
-            ResidualBlock(128, 128, stride=2),                     # [B, 128, H//8, W//8]
-            ResidualBlock(128, 128, stride=1)
+            ResidualBlock(256, 256, stride=1),                     # [B, 128, H//8, W//8]
+            ResidualBlock(256, 256, stride=1)
         )
         self.layer3 = nn.Sequential(
-            MultiScaleBlock(128),                                  # 多尺度块（2D版本，恢复注释）
-            nn.Conv2d(128, 256, kernel_size=(1, 1)),               # 1×1卷积提升通道
-            nn.BatchNorm2d(256),
+            MultiScaleBlock(256),                                  # 多尺度块（2D版本，恢复注释）
+            nn.Conv2d(256, 512, kernel_size=(1, 1)),               # 1×1卷积提升通道
+            nn.BatchNorm2d(512),
             nn.ReLU()
         )                                                          # [B, 256, H//8, W//8]
         self.layer4 = nn.Sequential(
-            ResidualBlock(256, 256, stride=2),                     # [B, 256, H//16, W//16]
-            FFTBlock(256),                                        # 频域增强（2D版本）
-            ResidualBlock(256, 256, stride=2)                      # [B, 256, H//32, W//32]
+            ResidualBlock(512, 512, stride=2),                     # [B, 256, H//16, W//16]
+            FFTBlock(512),                                        # 频域增强（2D版本）
+            ResidualBlock(512, 512, stride=2)                      # [B, 256, H//32, W//32]
         )
 
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))                   # 2D自适应池化→[B, 256, 1, 1]
-        self.fc = nn.Sequential(
-            nn.Linear(256, 512),
-            nn.BatchNorm1d(512),  # 全连接层后仍用1D归一化（特征为1D向量）
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(512, feature_dim)
-        )
+        # self.pool = nn.AdaptiveAvgPool2d((1, 1))                   # 2D自适应池化→[B, 256, 1, 1]
+        # self.fc = nn.Sequential(
+        #     nn.Linear(512, 512),
+        #     nn.BatchNorm1d(512),  # 全连接层后仍用1D归一化（特征为1D向量）
+        #     nn.ReLU(),
+        #     nn.Dropout(0.3),
+        #     nn.Linear(512, feature_dim)
+        # )
+        self.fc1 = None  # 延迟定义
+        self.feature_dim = feature_dim
 
     def forward(self, x):
         # 输入x原始形状：[B, 29, 42, 3]（B=批量，H=29，W=42，C=3）
@@ -116,26 +118,40 @@ class FeatureExtractor(nn.Module):
         x = x.permute(0, 3, 1, 2)  # [B, 3, 29, 42]
 
         # 特征提取流程（所有模块已改为2D版本）
-        x = self.stem(x)           # [B, 64, 15, 21]（29//2=15，42//2=21）
-        x = self.layer1(x)         # [B, 128, 7, 10]（15//2=7，21//2=10）
-        x = self.layer2(x)         # [B, 128, 3, 5]（7//2=3，10//2=5）
-        x = self.layer3(x)         # [B, 256, 3, 5]（多尺度+通道提升）
-        x = self.layer4(x)         # [B, 256, 1, 2]（下采样+FFT+下采样）
-        x = self.pool(x)           # [B, 256, 1, 1]（池化到1×1）
-        x = x.squeeze(-1).squeeze(-1)  # 移除多余维度→[B, 256]
-        feat = F.normalize(self.fc(x), dim=-1)  # [B, feature_dim]（特征归一化）
+        x = self.stem(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        # x = self.pool(x)
+        # x = x.squeeze(-1).squeeze(-1)
+        # feat = F.normalize(self.fc(x), dim=-1)  # [B, feature_dim]（特征归一化）
+        x = x.flatten(1)  # [B, 256*1*2] = [B, 512]
+
+        # 自动初始化 fc1
+        if self.fc1 is None:
+            in_dim = x.shape[1]
+            self.fc1 = nn.Sequential(
+                nn.Linear(in_dim, 512),
+                nn.BatchNorm1d(512),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+                nn.Linear(512, self.feature_dim)
+            ).to(x.device)
+
+        feat = F.normalize(self.fc1(x), dim=-1)
         return feat
 
 
 class ClassifierHead(nn.Module):
-    def __init__(self, in_dim=128, num_classes=10):
+    def __init__(self, in_dim=1024, num_classes=10):
         super().__init__()
         # 分类头无需修改（输入为1D特征向量，与原逻辑一致）
         self.classifier = nn.Sequential(
-            nn.Linear(in_dim, 256),
+            nn.Linear(in_dim, 512),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(256, num_classes)
+            nn.Linear(512, num_classes)
         )
 
     def forward(self, x):

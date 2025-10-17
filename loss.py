@@ -61,7 +61,7 @@ class SupConLoss_OpenSet(nn.Module):
 # 普通对比 学习，主要用来做消融实验
 
 class SupConLoss(nn.Module):
-    def __init__(self, temperature=0.06):
+    def __init__(self, temperature=0.05):
         super(SupConLoss, self).__init__()
         self.temperature = temperature
         self.eps = 1e-8
@@ -94,7 +94,7 @@ class SupConLoss(nn.Module):
 # 动态maring 对比学习
 class SupConLoss_DynamicMargin(nn.Module):
     # def __init__(self, temperature=0.07, base_margin=0.3, beta=0.4):
-    def __init__(self, temperature=0.06, base_margin=0.6, beta=0.5):
+    def __init__(self, temperature=0.08, base_margin=0.35, beta=0.25):
         super(SupConLoss_DynamicMargin, self).__init__()
         self.temperature = temperature
         self.base_margin = base_margin

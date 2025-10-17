@@ -6,6 +6,13 @@ from loss import SupConLoss_DynamicMargin, SupConLoss
 from model_mid import IncrementalContrastiveModel
 from model_mix import FeatureExtractor, ClassifierHead
 from util.utils import set_seed, adjust_lr, adjust_lr_add
+import os
+import pickle
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from torch.optim import Adam
 
 
 def load_maybe_model(path, device):
@@ -57,13 +64,7 @@ def sample_cache_balanced(feature_cache, sample_per_class, device):
     return feats, labels
 
 
-import os
-import pickle
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torch.optim import Adam
+
 
 def distillation_kl_loss(student_logits, teacher_logits, num_old_classes, T=2.0):
     """
@@ -136,7 +137,7 @@ def train_incremental(config):
     model = IncrementalContrastiveModel(
         encoder, classifier,
         in_dim=config.embedding_dim,
-        hidden_dim=128,
+        hidden_dim=512,
         feat_dim=config.embedding_dim
     ).to(device)
 
@@ -145,10 +146,10 @@ def train_incremental(config):
     model.contrastive_layer.train()
 
     ce_loss_fn = nn.CrossEntropyLoss()
-    contrastive_loss_fn = SupConLoss()
+    contrastive_loss_fn = SupConLoss(temperature=0.05)
     optimizer = torch.optim.Adam(
         list(model.contrastive_layer.parameters()) + list(model.classifier.parameters()),
-        lr=config.lr
+        lr=config.incre_lr
     )
 
     # ================= 训练 =================
@@ -159,7 +160,7 @@ def train_incremental(config):
             y_new_idx = y_new.to(device)  # logits 列直接对应设备编号
 
             # ------- 采样旧类缓存 --------
-            ratio = 1  # e.g., 5 或 8，可放在 config
+            ratio = 0.6 # e.g., 5 或 8，可放在 config
             num_old_classes = config.old_num_classes
             if num_old_classes > 0:
                 N_old = x_new.size(0) * ratio
@@ -201,61 +202,32 @@ def train_incremental(config):
                 # 建议权重：0.5~2.0（根据实验调整，避免过大压制新类学习）
                 # feat_distill_loss *= 1.0
 
-            # # 将缓存特征和新特征拆分
-            # feat_cache_proj = feat_all_proj[x_new.size(0):] if feat_cache_encoder.numel() > 0 else None
-            # feat_new_proj = feat_all_proj[:x_new.size(0)]
-            # # 特征蒸馏损失（仅对旧类）
-            # feat_distill_loss = 0.0
-            # if feat_cache_proj is not None:
-            #     feat_distill_loss = F.mse_loss(feat_cache_proj, feat_cache_encoder.detach())
-
-
             logits_all = classifier(feat_all_proj)  # 新分类器输出
             labels_all = torch.cat([y_new_idx, y_cache_idx], dim=0)
 
             # ------- 损失计算 --------
             # CE loss
-            ce_loss = ce_loss_fn(logits_all, labels_all)
+            # ce_loss = ce_loss_fn(logits_all, labels_all)
 
-            # KD loss 只对旧类部分做
-            # ------- 修正KD损失计算 --------
-            kd_loss = 0.0
-            if (classifier_old is not None) and (num_old_classes > 0) and (feat_cache_encoder.numel() > 0):
-                # 1. Teacher logits：仅旧缓存特征的旧类预测（来自冻结Encoder+旧分类器，可靠）
-                with torch.no_grad():
-                    teacher_logits_old = classifier_old(feat_cache_encoder.detach())  # [B_old, num_old_classes]
+            is_new = (labels_all >= num_old_classes)  # 根据编号判定新类
+            ce_per_sample = F.cross_entropy(logits_all, labels_all, reduction='none')
+            weight = torch.where(is_new, torch.tensor(1.8, device=device), torch.tensor(1.0, device=device))
+            ce_loss = (ce_per_sample * weight).mean()
 
-                # 2. Student logits：仅旧缓存特征的旧类预测（新分类器的旧类部分）
-                # logits_all = [新样本logits (B_new, C_total) | 旧样本logits (B_old, C_total)]
-                student_logits_old = logits_all[x_new.size(0):, :num_old_classes]  # [B_old, num_old_classes]
 
-                # 3. KL损失：学生旧类预测 ≈ 教师旧类预测
-                kd_loss = distillation_kl_loss(
-                    student_logits_old, teacher_logits_old,
-                    num_old_classes=num_old_classes, T=4.0
-                )
-                # kd_loss *= 2.0  # 权重按原逻辑保留
 
-            # kd_loss = 0.0
-            # if (classifier_old is not None) and (num_old_classes > 0):
-            #     # student 的旧类 logits
-            #     student_logits_old = logits_all[:, :num_old_classes]
-            #     # teacher logits 已经是 old_classifier 输出
-            #     teacher_logits_old_all = teacher_logits[:, :num_old_classes]
-            #     kd_loss = distillation_kl_loss(
-            #         student_logits_old, teacher_logits_old_all,
-            #         num_old_classes=num_old_classes, T=4.0
-            #     )
 
             # Contrastive loss on projected features
             con_loss = contrastive_loss_fn(feat_all_proj, labels_all)
 
-            # feat_loss = F.mse_loss(student_feat_old, feat_cache_encoder.detach())
-
-            loss =  ce_loss + 3* kd_loss + 0.8 * con_loss + feat_distill_loss
+            loss =  2.2*ce_loss +  1.0 * con_loss + 0.5*feat_distill_loss
 
             if epoch % 8 == 0:
-                print(f"[Epoch {epoch + 1}] ce: {ce_loss:.4f} | kd: {kd_loss:.4f} | con: {con_loss:.4f}| feat_distill_loss: {feat_distill_loss:.4f}")
+                print(f"[Epoch {epoch + 1}] ce: {ce_loss:.4f} | con: {con_loss:.4f}| feat_distill_loss: {feat_distill_loss:.4f}")
+
+
+
+
 
             optimizer.zero_grad()
             loss.backward()

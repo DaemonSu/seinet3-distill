@@ -85,6 +85,6 @@ if __name__ == "__main__":
     # ============ 数据加载 ============
 
     mixed_testset = KnownDataset(config.test_add1)
-    mixed_loader = DataLoader(mixed_testset, batch_size=config.batch_size, shuffle=True)
+    mixed_loader = DataLoader(mixed_testset, batch_size=config.batch_size, shuffle=False)
 
     test_incremental( config,mixed_loader)

@@ -7,14 +7,14 @@ def parse_args():
     parser.add_argument('--new_num_classes', default=20, type=int)
     parser.add_argument('--seq_len', default=3000, type=int)
     parser.add_argument('--device', default='cuda:0', type=str)
-    parser.add_argument('--epochs', default=50, type=int)
+    parser.add_argument('--epochs', default=33, type=int)
 
-    parser.add_argument('--batch_size', default=180, type=int)
+    parser.add_argument('--batch_size', default=256, type=int)
     # 初始训练过程中，每轮训练开集数据的数量
-    parser.add_argument('--open_batch_size', default=180, type=int)
+    parser.add_argument('--open_batch_size', default=256, type=int)
 
     # 增量学习过程中的每轮数量
-    parser.add_argument('--incr_batch_size', default=100, type=int)
+    parser.add_argument('--incr_batch_size', default=150, type=int)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--lr', default=0.001, type=float)
 
@@ -24,18 +24,16 @@ def parse_args():
     parser.add_argument('--embedding_dim', default=1024, type=int)
 
     # 增量训练过程中的学习率参数设置
-    parser.add_argument('--epochs2', default=150, type=int)
-
-    parser.add_argument('--incre_lr', default=0.01, type=float)
-
+    parser.add_argument('--epochs2', default=34, type=int)
+    parser.add_argument('--incre_lr', default=0.001, type=float)
     parser.add_argument('--incre_lr_decay_rate', default=0.1, type=float)
-    parser.add_argument('--incre_lr_decay_epochs', default=[50, 80, 140], type=float)
+    parser.add_argument('--incre_lr_decay_epochs', default=[50, 70, 140], type=float)
 
 
 
 
     parser.add_argument('--threshold', default=10000, type=int)
-    parser.add_argument('--open_threshold', type=float, default=0.95, help='Threshold for open-set test decision')
+    parser.add_argument('--open_threshold', type=float, default=0.92, help='Threshold for open-set test decision')
     parser.add_argument('--open_threshold_train', type=float, default=0.2, help='Threshold for open-set train decision')
     parser.add_argument('--proto_threshold', type=float, default=0.50, help='Threshold for proto open-set decision')
 
@@ -52,7 +50,7 @@ def parse_args():
     parser.add_argument('--distill_temperature', default=2, type=float)
     # 蒸馏损失系数
     parser.add_argument('--alpha_kd', default=2, type=float)
-    parser.add_argument('--max_feature_per_class', default=80, type=float)
+    parser.add_argument('--max_feature_per_class', default=100, type=float)
 
 
 

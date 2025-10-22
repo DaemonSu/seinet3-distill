@@ -156,8 +156,8 @@ def process_raw_mat_to_samples(mat_file_path, output_root, top_n=100):
 if __name__ == "__main__":
     # 配置参数
     MAT_FILE_PATH = "G:/seidata/ads-b-signals-records-non-cryptographic-identification-and-incremental-learning/adsb_bladerf2_10M_qt0.mat"
-    OUTPUT_ROOT = "G:/seidataforCIL/device_samples"  # 根目录，每个设备一个子目录
-    TOP_N = 100  # 取前100个消息最多的设备
+    OUTPUT_ROOT = "G:/seidataforCIL-init/device_samples"  # 根目录，每个设备一个子目录
+    TOP_N = 120  # 取前100个消息最多的设备
 
     # 执行处理
     process_raw_mat_to_samples(

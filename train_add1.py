@@ -160,7 +160,7 @@ def train_incremental(config):
             y_new_idx = y_new.to(device)  # logits 列直接对应设备编号
 
             # ------- 采样旧类缓存 --------
-            ratio = 0.6 # e.g., 5 或 8，可放在 config
+            ratio = config.ratio # e.g., 5 或 8，可放在 config
             num_old_classes = config.old_num_classes
             if num_old_classes > 0:
                 N_old = x_new.size(0) * ratio
@@ -224,10 +224,6 @@ def train_incremental(config):
 
             if epoch % 8 == 0:
                 print(f"[Epoch {epoch + 1}] ce: {ce_loss:.4f} | con: {con_loss:.4f}| feat_distill_loss: {feat_distill_loss:.4f}")
-
-
-
-
 
             optimizer.zero_grad()
             loss.backward()

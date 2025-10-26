@@ -17,9 +17,9 @@ from sklearn.metrics import confusion_matrix
 
 def test_incremental(config, test_loader):
     # === 加载模型 ===
-    encoder = torch.load(os.path.join(config.save_dir, 'encoder.pth')).to(config.device)
-    classifier = torch.load(os.path.join(config.save_dir, 'classifier_incremental.pth')).to(config.device)
-    contrastive_layer = torch.load(os.path.join(config.save_dir, 'mid_incremental.pth')).to(config.device)
+    encoder = torch.load(os.path.join(config.save_dir, 'encoder_step10.pth')).to(config.device)
+    classifier = torch.load(os.path.join(config.save_dir, 'classifier_step10.pth')).to(config.device)
+    contrastive_layer = torch.load(os.path.join(config.save_dir, 'contrastive_step10.pth')).to(config.device)
 
     encoder.eval()
     classifier.eval()
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     config = parse_args()
     # ============ 数据加载 ============
 
-    mixed_testset = KnownDataset(config.test_add1)
+    mixed_testset = KnownDataset(config.test_add10)
     mixed_loader = DataLoader(mixed_testset, batch_size=config.batch_size, shuffle=False)
 
     test_incremental( config,mixed_loader)

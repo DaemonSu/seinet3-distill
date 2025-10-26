@@ -94,19 +94,6 @@ def train_incremental_multi(config):
         # 没有旧缓存则初始化为空
         feature_cache = {}
 
-    # 兼容老结构：如果是list或dict of list
-    # if isinstance(feature_cache, list):
-    #     # 新逻辑的flatten结构
-    #     feature_cache_dict = {}
-    #     for feat, label in feature_cache:
-    #         label = int(label)
-    #         if label not in feature_cache_dict:
-    #             feature_cache_dict[label] = []
-    #         feature_cache_dict[label].append(feat)
-    #     feature_cache = feature_cache_dict
-    # elif not isinstance(feature_cache, dict):
-    #     raise ValueError("feature_cache format not recognized.")
-
     if isinstance(feature_cache, dict) and "features" in feature_cache:
         feature_cache = feature_cache["features"]
         cache_version = feature_cache.get("version", 0)
@@ -185,7 +172,7 @@ def train_incremental_multi(config):
 
             is_new = (labels_all >= old_num_classes)
             ce_per_sample = F.cross_entropy(logits_all, labels_all, reduction='none')
-            weight = torch.where(is_new, torch.tensor(1.8, device=device), torch.tensor(1.0, device=device))
+            weight = torch.where(is_new, torch.tensor(2.0, device=device), torch.tensor(1.0, device=device))
             ce_loss = (ce_per_sample * weight).mean()
 
             con_loss = contrastive_loss_fn(feat_all_proj, labels_all)
@@ -244,11 +231,12 @@ if __name__ == "__main__":
     initial_classes = 50
     increment_size = 5
 
+
     for step in range(1, num_increments + 1):
-        config.train_data_add = f"G:/seidataforCIL-init/train-add{step}"
+        config.train_data_add = f"G:/seidataforCIL-init5/train-add{step}"
         train_incremental_multi(config)
 
-        test_data = f"G:/seidataforCIL-init/test-add{step}"
+        test_data = f"G:/seidataforCIL-init5/test-add{step}"
         num_old_classes = initial_classes + (step - 1) * increment_size
         evaluate_incremental(
             model_path=f"model/classifier_step{step}.pth",
@@ -256,6 +244,11 @@ if __name__ == "__main__":
             projector_path=f"model/contrastive_step{step}.pth",  # ✅ 新增
             test_data_path=test_data,
             num_old_classes=num_old_classes,
-            device=config.device
+            device=config.device,
+            step=step,
+            initial_classes=initial_classes,
+            increment_size=increment_size,
+            metrics_dir=config.save_dir
         )
+
 

@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--incre_lr', default=0.001, type=float)
     parser.add_argument('--incre_lr_decay_rate', default=0.1, type=float)
     parser.add_argument('--incre_lr_decay_epochs', default=[30, 50, 140], type=float)
-    parser.add_argument('--ratio', default=0.6, type=float)
+    parser.add_argument('--ratio', default=0.5, type=float)
 
 
 
@@ -71,7 +71,7 @@ def parse_args():
     #第一次增量学习数据与测试
     parser.add_argument('--train_data_add', default='G:/seidataforCIL-init/train-add1', type=str)
 
-    parser.add_argument('--test_add', default='G:/seidataforCIL-init/test-add1', type=str)
+    parser.add_argument('--test_add10', default='G:/seidataforCIL-init/test-add10', type=str)
 
     # 第2次增量学习数据与测试
     parser.add_argument('--train_data_add2', default='G:/seidataforCIL-init/train-add2', type=str)

@@ -37,9 +37,6 @@ def test_mixed(encoder, classifier, test_loader, config):
             all_probs.append(probs.cpu())          # for ECE
             all_feats.append(feat.cpu().numpy())   # for t-SNE
 
-            # known/unknown scores (if unknown labeled as -1)
-            # known_scores.extend(max_probs.cpu().numpy()[y_torch.cpu().numpy() != -1])
-
             all_preds.extend(preds.cpu().numpy().tolist())
             all_labels.extend(y_torch.cpu().numpy().tolist())
 

@@ -7,7 +7,7 @@ import os
 # =========================================================
 # 读取实验记录
 # =========================================================
-with open("model/incremental_metrics.json", "r") as f:
+with open("incremental_metrics.json", "r") as f:
     hist = json.load(f)
 
 steps = sorted(int(k) for k in hist.keys())
@@ -50,12 +50,34 @@ new_acc = [hist[str(s)]["new_acc"] for s in steps]
 # =========================================================
 # 绘图部分
 # =========================================================
-os.makedirs("figs", exist_ok=True)
+os.makedirs("../figs", exist_ok=True)
 plt.rcParams["font.family"] = "Times New Roman"
 
 # ---------- 图1：Accuracy vs Step ----------
-plt.figure(figsize=(12, 4))
-plt.subplot(1, 2, 1)
+# plt.figure(figsize=(12, 4))
+# plt.subplot(1, 2, 1)
+# plt.plot(steps, total_acc, "-o", label="Total Acc")
+# plt.plot(steps, old_acc, "-o", label="Old Acc")
+# plt.plot(steps, new_acc, "-o", label="New Acc")
+# plt.xlabel("Incremental Step")
+# plt.ylabel("Accuracy (%)")
+# plt.title("Accuracy vs Step")
+# plt.legend()
+# plt.grid(True)
+#
+# # ---------- 图2：Average Forgetting vs Step ----------
+# plt.subplot(1, 2, 2)
+# plt.plot(steps, afr_per_step, "-o", color="red", label="Average Forgetting Rate")
+# plt.xlabel("Incremental Step")
+# plt.ylabel("Average Forgetting (%)")
+# plt.title("Average Forgetting vs Step")
+# plt.legend()
+# plt.grid(True)
+#
+# plt.tight_layout()
+# plt.savefig("accuracy_forgetting_curves.pdf", bbox_inches="tight", format='pdf')
+# plt.show()
+plt.figure(figsize=(6, 4))
 plt.plot(steps, total_acc, "-o", label="Total Acc")
 plt.plot(steps, old_acc, "-o", label="Old Acc")
 plt.plot(steps, new_acc, "-o", label="New Acc")
@@ -64,39 +86,22 @@ plt.ylabel("Accuracy (%)")
 plt.title("Accuracy vs Step")
 plt.legend()
 plt.grid(True)
+plt.tight_layout()
+plt.savefig("accuracy_curve.pdf", bbox_inches="tight", format='pdf')
+plt.close()
 
 # ---------- 图2：Average Forgetting vs Step ----------
-plt.subplot(1, 2, 2)
+plt.figure(figsize=(6, 4))
 plt.plot(steps, afr_per_step, "-o", color="red", label="Average Forgetting Rate")
 plt.xlabel("Incremental Step")
 plt.ylabel("Average Forgetting (%)")
 plt.title("Average Forgetting vs Step")
 plt.legend()
 plt.grid(True)
-
 plt.tight_layout()
-# plt.savefig("figs/accuracy_forgetting_curves.png", dpi=300)
-plt.savefig("accuracy_forgetting_curves.pdf", bbox_inches="tight", format='pdf')
-plt.show()
+plt.savefig("forgetting_curve.pdf", bbox_inches="tight", format='pdf')
+plt.close()
 
-# =========================================================
-# 绘制每类的准确率随阶段变化的热力图
-# =========================================================
-# plt.figure(figsize=(10, 6))
-# sns.heatmap(
-#     acc_matrix,
-#     xticklabels=steps,
-#     yticklabels=classes,
-#     cmap="viridis",
-#     cbar_kws={'label': 'Accuracy (%)'}
-# )
-# plt.xlabel("Incremental Step")
-# plt.ylabel("Class ID")
-# plt.title("Class-wise Accuracy Evolution")
-# plt.tight_layout()
-# # plt.savefig("figs/classwise_accuracy_heatmap.png", dpi=300)
-# plt.savefig("classwise_accuracy_heatmap.pdf", bbox_inches="tight", format='pdf')
-# plt.show()
 
 plt.figure(figsize=(12, 6))
 ax = sns.heatmap(

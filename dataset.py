@@ -82,7 +82,7 @@ class MixedDataset(Dataset):
         path, label = self.samples[index]
         data = np.load(path)  # shape = [2, L]
         data = torch.tensor(data, dtype=torch.float32)
-        if  label > 99:
+        if  label > 49:
            label= -1
         return data, label # unknown 类标记为 -1
 

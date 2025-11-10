@@ -132,7 +132,7 @@ def train_incremental_multi(config):
     model.contrastive_layer.train()
 
     ce_loss_fn = torch.nn.CrossEntropyLoss()
-    contrastive_loss_fn = SupConLoss(temperature=0.08)
+    contrastive_loss_fn = SupConLoss(temperature=0.05)
     optimizer = torch.optim.Adam(
         list(model.contrastive_layer.parameters()) + list(model.classifier.parameters()),
         lr=config.incre_lr
@@ -172,8 +172,8 @@ def train_incremental_multi(config):
 
             is_new = (labels_all >= old_num_classes)
             ce_per_sample = F.cross_entropy(logits_all, labels_all, reduction='none')
-            weight = torch.where(is_new, torch.tensor(2.0, device=device), torch.tensor(1.0, device=device))
-            ce_loss = (ce_per_sample * weight).mean()
+            # weight = torch.where(is_new, torch.tensor(1.0, device=device), torch.tensor(1.0, device=device))
+            ce_loss = (ce_per_sample).mean()
 
             con_loss = contrastive_loss_fn(feat_all_proj, labels_all)
             loss = 2.0 * ce_loss + 1.0 * con_loss + 0.5 * feat_distill_loss
@@ -227,16 +227,16 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False`")
 
     config = parse_args()
-    num_increments = 4
-    initial_classes = 6
-    increment_size = 2
+    num_increments = 10
+    initial_classes = 50
+    increment_size = 5
 
 
     for step in range(1, num_increments + 1):
-        config.train_data_add = f"G:/seidata/26ft-inc/train-add{step}"
+        config.train_data_add = f"G:/seidataforCIL-init5/train-add{step}"
         train_incremental_multi(config)
 
-        test_data = f"G:/seidata/26ft-inc/test-add{step}"
+        test_data = f"G:/seidataforCIL-init5/test-add{step}"
         num_old_classes = initial_classes + (step - 1) * increment_size
         evaluate_incremental(
             model_path=f"model/classifier_step{step}.pth",

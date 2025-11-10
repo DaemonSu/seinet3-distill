@@ -67,7 +67,7 @@ def test_mixed(encoder, classifier, test_loader, config):
             unknown_max_probs.append(prob_val.item())
 
 
-    visualize_features(np.array(all_feats),np.array(all_labels), known_class_count=20, method='t-SNE')
+    visualize_features(np.array(all_feats),np.array(all_labels), known_class_count=config.old_num_classes, method='t-SNE')
     all_logits = np.concatenate(all_logits)
 
     # Convert to numpy arrays

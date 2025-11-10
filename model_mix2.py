@@ -91,15 +91,15 @@ class FeatureExtractor(nn.Module):
         )
         self.layer3 = nn.Sequential(
             MultiScaleBlock(256),                                  # 多尺度块（2D版本，恢复注释）
-            nn.Conv2d(256, 512, kernel_size=(1, 1)),               # 1×1卷积提升通道
-            nn.BatchNorm2d(512),
+            nn.Conv2d(256, 256, kernel_size=(1, 1)),               # 1×1卷积提升通道
+            nn.BatchNorm2d(256),
             nn.ReLU()
         )                                                          # [B, 256, H//8, W//8]
-        self.layer4 = nn.Sequential(
-            ResidualBlock(512, 512, stride=2),                     # [B, 256, H//16, W//16]
-            FFTBlock(512),                                        # 频域增强（2D版本）
-            ResidualBlock(512, 512, stride=2)                      # [B, 256, H//32, W//32]
-        )
+        # self.layer4 = nn.Sequential(
+        #     ResidualBlock(512, 512, stride=2),                     # [B, 256, H//16, W//16]
+        #     FFTBlock(512),                                        # 频域增强（2D版本）
+        #     ResidualBlock(512, 512, stride=2)                      # [B, 256, H//32, W//32]
+        # )
         self.fc1 = None  # 延迟定义
         self.feature_dim = feature_dim
 
@@ -113,18 +113,18 @@ class FeatureExtractor(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        x = self.layer4(x)
+        # x = self.layer4(x)
         x = x.flatten(1)  # [B, 256*1*2] = [B, 512]
 
         # 自动初始化 fc1
         if self.fc1 is None:
             in_dim = x.shape[1]
             self.fc1 = nn.Sequential(
-                nn.Linear(in_dim, 512),
-                nn.BatchNorm1d(512),
+                nn.Linear(in_dim, 256),
+                nn.BatchNorm1d(256),
                 nn.ReLU(),
                 nn.Dropout(0.3),
-                nn.Linear(512, self.feature_dim)
+                nn.Linear(256, self.feature_dim)
             ).to(x.device)
 
         feat = F.normalize(self.fc1(x), dim=-1)
@@ -136,10 +136,10 @@ class ClassifierHead(nn.Module):
         super().__init__()
         # 分类头无需修改（输入为1D特征向量，与原逻辑一致）
         self.classifier = nn.Sequential(
-            nn.Linear(in_dim, 512),
+            nn.Linear(in_dim, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(512, num_classes)
+            nn.Linear(256, num_classes)
         )
 
     def forward(self, x):

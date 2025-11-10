@@ -36,11 +36,11 @@ def visualize_features(features, labels, known_class_count, method='t-SNE', prot
         # plt.scatter(feat_emb[mask, 0], feat_emb[mask, 1], label=f"Class {cls}", color=cmap(cls), s=20, alpha=0.6)
         plt.scatter(feat_emb[mask, 0], feat_emb[mask, 1],
                     label=f"Class {cls}", color=colors[cls],
-                    s=20, alpha=0.6, edgecolors='k', linewidths=0.2)
+                    s=50, alpha=0.6, edgecolors='k', linewidths=0.2)
 
     open_mask = labels == -1
     if open_mask.sum() > 0:
-        plt.scatter(feat_emb[open_mask, 0], feat_emb[open_mask, 1], label="Unknown", color='gray', s=20, alpha=0.6, marker='x')
+        plt.scatter(feat_emb[open_mask, 0], feat_emb[open_mask, 1], label="Unknown", color='gray', s=50, alpha=0.6, marker='x')
 
     if prototypes is not None:
         for i in range(min(known_class_count, len(proto_emb))):
@@ -55,8 +55,8 @@ def visualize_features(features, labels, known_class_count, method='t-SNE', prot
                                 linestyle='--', fill=False, alpha=0.4)
                 plt.gca().add_patch(circle)
 
-    plt.legend(loc='best')
-    plt.title(f"{method} Feature Visualization (Known + Unknown)")
+    # plt.legend(loc='best')
+    plt.title(f"{method} Feature Visualization")
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(save_path, format='pdf', dpi=300)

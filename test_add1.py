@@ -15,17 +15,21 @@ from util.utils import expected_calibration_error, fpr_at_95_tpr, load_object
 
 from sklearn.metrics import confusion_matrix
 
+from util.visualize import visualize_features
+
+
 def test_incremental(config, test_loader):
     # === 加载模型 ===
-    encoder = torch.load(os.path.join(config.save_dir, 'encoder_step10.pth')).to(config.device)
-    classifier = torch.load(os.path.join(config.save_dir, 'classifier_step10.pth')).to(config.device)
-    contrastive_layer = torch.load(os.path.join(config.save_dir, 'contrastive_step10.pth')).to(config.device)
+    encoder = torch.load(os.path.join(config.save_dir, 'encoder_step2.pth')).to(config.device)
+    classifier = torch.load(os.path.join(config.save_dir, 'classifier_step2.pth')).to(config.device)
+    contrastive_layer = torch.load(os.path.join(config.save_dir, 'contrastive_step2.pth')).to(config.device)
 
     encoder.eval()
     classifier.eval()
     contrastive_layer.eval()
 
     all_preds, all_labels = [], []
+    all_feats = []
 
     total_correct, total_num = 0, 0
     old_correct, old_num = 0, 0
@@ -38,6 +42,7 @@ def test_incremental(config, test_loader):
 
             feat = encoder(x)
             feat = contrastive_layer(feat)
+            all_feats.append(feat.cpu().numpy())  # for t-SNE
             logits = classifier(feat)
             preds = logits.argmax(dim=1)
 
@@ -60,10 +65,12 @@ def test_incremental(config, test_loader):
     acc_total = total_correct / total_num * 100
     acc_old = old_correct / old_num * 100 if old_num > 0 else 0
     acc_new = new_correct / new_num * 100 if new_num > 0 else 0
+    all_feats = np.vstack(all_feats) if len(all_feats) > 0 else np.empty((0,))
     print(f"Test Acc Total: {acc_total:.2f}% | Old: {acc_old:.2f}% | New: {acc_new:.2f}%")
 
     all_labels = torch.cat(all_labels).numpy()
     all_preds = torch.cat(all_preds).numpy()
+    y_true = np.array(all_labels)
 
     # ==== 混淆矩阵 ====
     np.set_printoptions(
@@ -76,7 +83,11 @@ def test_incremental(config, test_loader):
     print("\nConfusion Matrix (rows=true, cols=predicted):")
     print("Labels:", labels_order.tolist())
     print(cm)
-
+    try:
+        if all_feats.shape[0] > 0:
+            visualize_features(all_feats, y_true, known_class_count=100, method='t-SNE')
+    except Exception as e:
+        print("[Warn] feature viz failed:", e)
 
 
 

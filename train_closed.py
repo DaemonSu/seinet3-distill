@@ -20,9 +20,7 @@ def train_open_contrastive(config):
     classifier = ClassifierHead(1024, config.num_classes).to(config.device)
 
     ce_loss_fn = nn.CrossEntropyLoss()
-    # supcon_loss_fn = SupConLoss_OpenSet()
-    # supcon_loss_fn =SupConLoss_DynamicMargin()
-    supcon_loss_fn =SupCon_OpenSet_Mixed()
+    supcon_loss_fn =SupConLoss_DynamicMargin(temperature=0.07, base_margin=0.3, beta=0.4)
     optimizer = torch.optim.Adam(list(encoder.parameters()) + list(classifier.parameters()), lr=config.lr, weight_decay=1e-4)
 
     feature_cache = {cls: [] for cls in range(config.old_num_classes)}
@@ -50,12 +48,9 @@ def train_open_contrastive(config):
 
 
             # 对比损失：已知类之间 + 已知类 vs 未知类
-            con_loss,_ = supcon_loss_fn(feat_known, y_known)
-            if epoch <= 150:
-                loss = 0.01 * con_loss + ce_loss
-            else:
-                loss = 0.5*con_loss + ce_loss
+            con_loss= supcon_loss_fn(feat_known, y_known)
 
+            loss = 2.4 * con_loss + 2.0 * ce_loss
 
 
             optimizer.zero_grad()
@@ -64,20 +59,6 @@ def train_open_contrastive(config):
 
             # 预测并生成 mask
             preds = logits.argmax(dim=1)
-            correct_mask = (preds == y_known)
-
-            # 遍历每个类别
-            for cls in y_known.unique():
-                cls = int(cls.item())
-                # 只取正确分类的样本
-                mask_cls = (y_known == cls) & correct_mask
-                if mask_cls.any():
-                    feats_cls = feat_known[mask_cls].detach().cpu()
-                    feature_cache[cls].extend(feats_cls.tolist())
-                    # 保留最新 max_feature_per_class 个
-                    if len(feature_cache[cls]) > config.max_feature_per_class:
-                        feature_cache[cls] = feature_cache[cls][-config.max_feature_per_class:]
-
 
             acc = (preds == y_known).float().mean().item()
             total_loss += loss.item()
@@ -90,11 +71,49 @@ def train_open_contrastive(config):
     os.makedirs(config.save_dir, exist_ok=True)
     torch.save(encoder, os.path.join(config.save_dir, 'encoder.pth'))
     torch.save(classifier, os.path.join(config.save_dir, 'classifier.pth'))
+    # ============ 训练后构建特征缓存 ============
+    build_feature_cache(encoder, classifier, config)
 
-    # ================= 保存特征缓存 =================
+
+def build_feature_cache(encoder, classifier, config):
+    """训练结束后重新提取各类别特征缓存"""
+    print("\nBuilding feature cache...")
+
+    encoder.eval()
+    classifier.eval()
+
+    dataset = KnownDataset(config.train_data_close)
+    dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=False)
+
+    feature_cache = {cls: [] for cls in range(config.num_classes)}
+
+    with torch.no_grad():
+        for x, y in dataloader:
+            x, y = x.to(config.device), y.to(config.device)
+            feat = encoder(x)
+            logits = classifier(feat)
+            preds = logits.argmax(dim=1)
+            correct_mask = preds.eq(y)
+
+            for cls in y.unique():
+                cls = int(cls.item())
+                mask_cls = (y == cls) & correct_mask
+                if mask_cls.any():
+                    feats_cls = feat[mask_cls].cpu()
+                    feature_cache[cls].extend(feats_cls.tolist())
+                    # 限制缓存大小
+                    if len(feature_cache[cls]) > config.max_feature_per_class:
+                        feature_cache[cls] = feature_cache[cls][-config.max_feature_per_class:]
+
+    # 保存缓存
+    os.makedirs(config.save_dir, exist_ok=True)
     import pickle
     with open(os.path.join(config.save_dir, 'feature_cache.pkl'), 'wb') as f:
         pickle.dump(feature_cache, f)
+
+    print("Feature cache built and saved successfully.")
+
+
 if __name__ == "__main__":
 
     config = parse_args()
